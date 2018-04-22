@@ -1,5 +1,5 @@
 #include "cyk.h"
-
+#include "cykParser.h"
 #include <iostream>
 
 int main(){
@@ -61,7 +61,8 @@ int main(){
 
         StringVector sents {"does", "the", "flight", "include", "a", "meal"};
 
-        std::vector<BTreeNode*> parses = cyk(sents, rules);
+        //std::vector<BTreeNode*> parses = cyk(sents, rules);
+        cykParser(sents,rules);
 
         for(auto tree : parses){
                 std::cout << tree->string_repr() << std::endl;
