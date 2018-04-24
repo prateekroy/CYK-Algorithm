@@ -1,21 +1,27 @@
-all: btree types.h rule table cyk main
-	g++-4.7 -std=c++11 *.o -o main
 
-main: main.cpp
-	g++-4.7 -c -std=c++11 main.cpp
+TARGET ?= run
+SRC_DIRS ?= ./
+INC_DIRS = 
 
-cyk: cyk.cpp
-	g++-4.7 -c -std=c++11 cyk.cpp
+CC := g++
+SRCS := $(shell find $(SRC_DIRS) -name '*.cpp' -or -name '*.c' -or -name '*.s')
+OBJS := $(addsuffix .o,$(basename $(SRCS)))
+DEPS := $(OBJS:.o=.d)
+CXXFLAGS=-g -std=c++11 -Wall -pedantic
 
-btree: btree.cpp
-	g++-4.7 -c -std=c++11 btree.cpp
+INC_DIRS ?= $(shell find $(SRC_DIRS) -type d)
+INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-rule: rule.cpp
-	g++-4.7 -c -std=c++11 rule.cpp
+CPPFLAGS ?= $(INC_FLAGS) -MMD -MP
+CXX = g++
 
-table: table.cpp
-	g++-4.7 -c -std=c++11 table.cpp
+LOADLIBES := 
 
+$(TARGET): $(OBJS)
+	$(CC) $(LDFLAGS) $(OBJS) $(INC_FLAGS) -o $@ $(LOADLIBES) $(LDLIBS)
+
+.PHONY: clean
 clean:
-	rm *.o
-	rm main
+	$(RM) $(TARGET) $(OBJS) $(DEPS)
+
+-include $(DEPS)
