@@ -103,6 +103,21 @@ void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules
 	}
 }
 
+void printMatrix(int *** scores, int x, int y, int z){
+	for (int i = 0; i < x; ++i)
+	{
+		for (int j = 0; j < y; ++j)
+		{
+			for (int k = 0; k < z; ++k)
+			{
+				cout<<" "<< scores[i][j][k]<<" ";
+			}
+			cout<<endl;
+		}
+	}
+}
+
+
 void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexicons, SymbolsSet& symbols){
 	//size should be words.length, words.length, total non-terminals 
 	int *** scores  = new int**[words.size()+1];
@@ -124,6 +139,8 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 		binaryRelax(scores,nWords,length,rules, symbols);
 		
 	}
+
+	printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
 	//tree = backtrackBestParseTree(scores);
 	//return tree;
 }

@@ -63,7 +63,8 @@ int main(){
 
         };
 
-        StringVector sents {"does", "the", "flight", "include", "a", "meal"};
+        // StringVector sents {"does", "the", "flight", "include", "a", "meal"};
+        StringVector sents {"book", "the", "flight", "through", "Houston"};
 
         /*std::vector<BTreeNode*> parses = cyk(sents, rules);
 
