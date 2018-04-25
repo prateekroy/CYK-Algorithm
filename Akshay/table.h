@@ -20,7 +20,7 @@
 */
 class BPTableEntryItem{
 public:
-        virtual bool is_single(){};
+        virtual bool is_single(){}
 };
 
 class BPSingleEntry: public BPTableEntryItem{
@@ -36,7 +36,7 @@ public:
 class BPTupleEntry: public BPTableEntryItem{
 public:
         BPTupleEntry(int _l1, int _l2, std::string _lname, int _r1, int _r2, std::string _rname):
-                l1(_l1), l2(_l2), lname(_lname), r1(_r1), r2(_r2), rname(_rname){};
+                l1(_l1), l2(_l2), r1(_r1), r2(_r2), lname(_lname), rname(_rname){}
 
         int l1, l2, r1, r2;
         std::string lname, rname;
