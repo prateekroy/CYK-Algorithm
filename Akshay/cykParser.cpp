@@ -170,7 +170,7 @@ void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules
 						
 						//add score of that rule in the location
 						scores[i][i+1][symIndices[*itr]] = rulesList[k]->score;
-						cout<<rulesList[k]->left<<" ------> "<<rulesList[k]->right1; 
+						cout<<rulesList[k]->left<<" ------> "<<rulesList[k]->right1;
 					}
 				}
 			}
@@ -196,7 +196,7 @@ void printMatrix(int *** scores, int x, int y, int z){
 	}
 }
 
-void printBPTree(backpointer**** bp, int start, int end, string symbol){
+void printBPTree(backpointer**** bp, int start, int end, string symbol, const StringVector & words){
 
 	if (symIndices.find(symbol) == symIndices.end())
 	{
@@ -210,18 +210,21 @@ void printBPTree(backpointer**** bp, int start, int end, string symbol){
 	cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
 
 	cout << symbol << " -> " << curr->right1 <<" "<< curr->right2 << endl;
+	if(curr->right1 =="" && curr->right2 ==""){
+		cout<<words[start]<<endl;
+	}
 
 	cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
 
 	int split = (curr->split != 0) ? curr->split : 0;
 
 	if(curr->right1 != ""){
-		printBPTree(bp, start, split, curr->right1);
+		printBPTree(bp, start, split, curr->right1,words);
 	}
 
 	if (curr->right2 != "")
 	{
-		printBPTree(bp, split, end, curr->right2);
+		printBPTree(bp, split, end, curr->right2,words);
 	}
 
 }
@@ -265,7 +268,7 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 
 
 	printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
-	printBPTree(bp, 0, words.size(), "S");
+	printBPTree(bp, 0, words.size(), "S",words);
 }
 
 void fillMap(RulesMap& map, RuleVector& rules){

@@ -7,6 +7,8 @@ public:
 	string right1;
 	string right2;
 	int split;
+	bool isLeaf;
+	string literal;
 
 	backpointer(string _right1, string _right2, int _split){
 		right1 = _right1;
@@ -19,5 +21,8 @@ public:
 		right2 = _right2;
 		split = _split;
 	}
+
+
+
 
 };
