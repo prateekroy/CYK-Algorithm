@@ -75,16 +75,77 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 							bpSplit = split;
 							right1 = rulesList[j]->right1;
 							right2 = rulesList[j]->right2;
-							bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
 							cout<<rulesList[j]->left<<" ------> "<<rulesList[j]->right1<<" "<<rulesList[j]->right2;
 						}
 					}
 				}
 			}
 			scores[start][end][symIndices[*itr]]=max;
+			bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
+
 			// cout << right1 << " " << right2 << endl;
 			
 		}
+
+		unaryRelax(scores, start, end, rules,symbols, bp);
+	}
+}
+
+
+
+//Parallel Binary Relax
+void binaryRelaxPar(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
+
+
+	for(int start =0; start <=nWords-length; start++){
+		
+		int end = start + length;
+		int* shared_max = new int[symbols.size()];
+
+
+		//for all symbols
+		//make the for parallel
+		for (set<string,int>::iterator itr = symbols.begin(); itr != symbols.end(); ++itr){
+			int local_max = 0;
+			RuleVector rulesList = rulesMap[*itr];
+			string right1="", right2="";
+			int bpSplit=-1;
+
+			//For each binary rule in the grammar
+			for(int j=0;j<rulesList.size();j++){
+
+				//TODO check if for unary rules, the right child is in right1
+				if(rulesList[j]->is_second_order()){
+					for (int split =start+1;split<=end-1;split++){
+						int lscore = scores[start][split][symIndices[rulesList[j]->right1]];
+						int rscore = scores[split][end][symIndices[rulesList[j]->right2]];
+						int score = rulesList[j]->score + lscore + rscore;
+
+						if(score > local_max){
+							local_max = score;
+
+							//needed for backpointer
+							bpSplit = split;
+							right1 = rulesList[j]->right1;
+							right2 = rulesList[j]->right2;
+
+						}
+					}
+				}
+			}
+
+			//atomic max // for now use lock
+			shared_max[symIndices[*itr]] = max(shared_max[symIndices[*itr]], local_max);
+		}
+
+		//make this parallel for
+		for (set<string,int>::iterator itr = symbols.begin(); itr != symbols.end(); ++itr){
+			scores[start][end][symIndices[*itr]] = max(scores[start][end][symIndices[*itr]], shared_max[symIndices[*itr]]);			
+		}
+
+			// scores[start][end][symIndices[*itr]]=local_max;
+			// // cout << right1 << " " << right2 << endl;
+			// bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
 
 		unaryRelax(scores, start, end, rules,symbols, bp);
 	}
@@ -203,7 +264,7 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 	}
 
 
-	//printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
+	printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
 	printBPTree(bp, 0, words.size(), "S");
 }
 
