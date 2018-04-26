@@ -6,13 +6,16 @@ using namespace std;
 typedef std::set<string> SymbolsSet;
 typedef std::map<string, RuleVector> RulesMap;
 typedef std::map<string, int> SymbolIndices;
+typedef std::map<string, RuleVector> LexiconsMap;
 
 RulesMap rulesMap;
+LexiconsMap lexiconsMap;
 SymbolsSet symbols;
 SymbolIndices symIndices;
 
 
 void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
+	cout<<endl<<endl<<endl<<"In Unary Relax"<<endl;
 	int prob=0;
 	RuleVector rulesList;
 	set <string, int > :: iterator itr;
@@ -31,7 +34,7 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 				// if the above score is greater than the score of B, then add A to the location [begin][end]
 		     	if(prob > scores[begin][end][symIndices[rulesList[k]->left]]){
 		     		scores[begin][end][symIndices[rulesList[k]->left]] = prob;
-		     		// cout << rulesList[k]->right1 << endl;
+		     		cout << rulesList[k]->left << " ----> "<<rulesList[k]->right1 << endl;
 		     		bp[begin][end][symIndices[rulesList[k]->left]]->setBP(rulesList[k]->right1,"",0);
 		     	}
          	}
@@ -41,7 +44,7 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 
 
 void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
-
+	cout<<endl<<endl<<endl<<"In Binary Relax"<<endl;
 	int end=0;
 	int max = -1;
 	RuleVector rulesList;
@@ -72,14 +75,15 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 							bpSplit = split;
 							right1 = rulesList[j]->right1;
 							right2 = rulesList[j]->right2;
-
+							bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
+							cout<<rulesList[j]->left<<" ------> "<<rulesList[j]->right1<<" "<<rulesList[j]->right2;
 						}
 					}
 				}
 			}
 			scores[start][end][symIndices[*itr]]=max;
 			// cout << right1 << " " << right2 << endl;
-			bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
+			
 		}
 
 		unaryRelax(scores, start, end, rules,symbols, bp);
@@ -88,6 +92,7 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 
 
 void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules, RuleVector & lexicons, SymbolsSet& symbols, backpointer**** bp){
+	cout<<endl<<endl<<endl<<"In Lexicon Scores"<<endl;
 	RuleVector rulesList;
 	set <string, int > :: iterator itr;
 
@@ -95,19 +100,22 @@ void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules
 	for(int i=0;i<words.size();i++){
 		//for all symbols
 		for (itr = symbols.begin(); itr != symbols.end(); ++itr){
-			rulesList = rulesMap[*itr];
+			rulesList = lexiconsMap[*itr];
 			//for all rules of that symbol
 			for(int k=0;k<rulesList.size();k++){
-				//if the rule produces that symbol on the RHS
-				if(rulesList[k]->right1 == words[i]){
-					
-					//add score of that rule in the location
-					scores[i][i+1][symIndices[*itr]] = rulesList[k]->score; 
+				//if the unary rule produces that symbol on the RHS
+				if(rulesList[k]->is_first_order()){
+					if(rulesList[k]->right1 == words[i]){
+						
+						//add score of that rule in the location
+						scores[i][i+1][symIndices[*itr]] = rulesList[k]->score;
+						cout<<rulesList[k]->left<<" ------> "<<rulesList[k]->right1; 
+					}
 				}
 			}
 				
 		}
-
+		cout<<endl;
 		unaryRelax(scores, i, i+1, rules,symbols, bp);
 		
 	}
@@ -140,7 +148,7 @@ void printBPTree(backpointer**** bp, int start, int end, string symbol){
 
 	cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
 
-	cout << symbol << " -> " << curr->right1 << curr->right2 << endl;
+	cout << symbol << " -> " << curr->right1 <<" "<< curr->right2 << endl;
 
 	cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
 
@@ -195,10 +203,8 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 	}
 
 
-	printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
+	//printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
 	printBPTree(bp, 0, words.size(), "S");
-	//tree = backtrackBestParseTree(scores);
-	//return tree;
 }
 
 void fillMap(RulesMap& map, RuleVector& rules){
@@ -225,6 +231,10 @@ void fillSet(SymbolsSet& sym, RuleVector& rules){
 void initializeRulesMap(RulesMap & map, RuleVector & rules, RuleVector & lexicons){
 	
 	fillMap(map,rules);
+	//fillMap(map,lexicons);	
+}
+
+void initializeLexiconsMap(RulesMap & map, RuleVector & lexicons){
 	fillMap(map,lexicons);	
 }
 
@@ -249,6 +259,7 @@ void cykParserUtil(const StringVector & words, RuleVector & rules, RuleVector & 
 	
 	//Write initialization code
 	initializeRulesMap(rulesMap, rules, lexicons);
+	initializeLexiconsMap(lexiconsMap,lexicons);
 	initializeSymbols(symbols,rules,lexicons);
 	initializeSymbolIndices(symbols, symIndices);
 	cykParser(words,rules,lexicons,symbols);
