@@ -136,6 +136,7 @@ void binaryRelaxPar(int *** scores, int nWords, int length, RuleVector& rules, S
 
 			//atomic max // for now use lock
 			shared_max[symIndices[*itr]] = max(shared_max[symIndices[*itr]], local_max);
+			bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
 		}
 
 		//make this parallel for
