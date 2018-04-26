@@ -37,10 +37,11 @@ int main(){
                         new Rule("VP", "VERB", "PP", 1),
                         new Rule("VP", "VP", "PP", 1),
                         new Rule("PP", "PREPOSITION", "NP", 1),
+                        
                         new Rule("DET", "that" , 1),
+                        new Rule("DET", "the", 1),
                         new Rule("DET", "this", 1),
                         new Rule("DET", "a", 1),
-                        new Rule("DET", "the", 1),
                         new Rule("NOUN", "book", 1),
                         new Rule("NOUN", "flight", 1),
                         new Rule("NOUN", "meal", 1),
@@ -63,8 +64,8 @@ int main(){
 
         };
 
-        StringVector sents {"does", "the", "flight", "include", "a", "meal"};
-        //StringVector sents {"book", "the", "flight"};
+        // StringVector sents {"does", "the", "flight", "include", "a", "meal"};
+        StringVector sents {"book", "the", "flight", "through", "houston"};
 
         /*std::vector<BTreeNode*> parses = cyk(sents, rules);
 

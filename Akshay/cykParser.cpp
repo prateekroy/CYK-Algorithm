@@ -31,7 +31,8 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 				// if the above score is greater than the score of B, then add A to the location [begin][end]
 		     	if(prob > scores[begin][end][symIndices[rulesList[k]->left]]){
 		     		scores[begin][end][symIndices[rulesList[k]->left]] = prob;
-		     		bp[begin][end][symIndices[rulesList[k]->left]]->setBP(rulesList[k]->right1,"",-1);
+		     		// cout << rulesList[k]->right1 << endl;
+		     		bp[begin][end][symIndices[rulesList[k]->left]]->setBP(rulesList[k]->right1,"",0);
 		     	}
          	}
 		}
@@ -46,8 +47,8 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 	RuleVector rulesList;
 	int lscore=0, rscore =0,score=0;
 	set <string, int > :: iterator itr;
-	string right1, right2;
-	int bpSplit;
+	string right1="", right2="";
+	int bpSplit=-1;
 
 	for(int start =0; start <=nWords-length; start++){
 		
@@ -77,6 +78,7 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 				}
 			}
 			scores[start][end][symIndices[*itr]]=max;
+			// cout << right1 << " " << right2 << endl;
 			bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
 		}
 
@@ -125,8 +127,33 @@ void printMatrix(int *** scores, int x, int y, int z){
 	}
 }
 
-void printBPTree(backpointer**** bp, int n){
+void printBPTree(backpointer**** bp, int start, int end, string symbol){
 
+	if (symIndices.find(symbol) == symIndices.end())
+	{
+		cout << symbol << "not found\n";
+		return;
+	}
+
+	int symIndex = symIndices[symbol];
+	backpointer* curr = bp[start][end][symIndex];
+
+	cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
+
+	cout << symbol << " -> " << curr->right1 << curr->right2 << endl;
+
+	cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
+
+	int split = (curr->split != 0) ? curr->split : 0;
+
+	if(curr->right1 != ""){
+		printBPTree(bp, start, split, curr->right1);
+	}
+
+	if (curr->right2 != "")
+	{
+		printBPTree(bp, split, end, curr->right2);
+	}
 
 }
 
@@ -169,7 +196,7 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 
 
 	printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
-	printBPTree(bp,words.size()+1);
+	printBPTree(bp, 0, words.size(), "S");
 	//tree = backtrackBestParseTree(scores);
 	//return tree;
 }
