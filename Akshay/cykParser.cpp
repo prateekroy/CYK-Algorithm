@@ -12,7 +12,7 @@ SymbolsSet symbols;
 SymbolIndices symIndices;
 
 
-void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsSet& symbols){
+void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
 	int prob=0;
 	RuleVector rulesList;
 	set <string, int > :: iterator itr;
@@ -31,6 +31,7 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 				// if the above score is greater than the score of B, then add A to the location [begin][end]
 		     	if(prob > scores[begin][end][symIndices[rulesList[k]->left]]){
 		     		scores[begin][end][symIndices[rulesList[k]->left]] = prob;
+		     		bp[begin][end][symIndices[rulesList[k]->left]]->setBP(rulesList[k]->right1,"",-1);
 		     	}
          	}
 		}
@@ -38,13 +39,15 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 }
 
 
-void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols){
+void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
 
 	int end=0;
 	int max = -1;
 	RuleVector rulesList;
 	int lscore=0, rscore =0,score=0;
 	set <string, int > :: iterator itr;
+	string right1, right2;
+	int bpSplit;
 
 	for(int start =0; start <=nWords-length; start++){
 		
@@ -65,19 +68,24 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 
 						if(score > max){
 							max = score;
+							bpSplit = split;
+							right1 = rulesList[j]->right1;
+							right2 = rulesList[j]->right2;
+
 						}
 					}
 				}
 			}
 			scores[start][end][symIndices[*itr]]=max;
+			bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
 		}
 
-		unaryRelax(scores, start, end, rules,symbols);
+		unaryRelax(scores, start, end, rules,symbols, bp);
 	}
 }
 
 
-void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules, RuleVector & lexicons, SymbolsSet& symbols){
+void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules, RuleVector & lexicons, SymbolsSet& symbols, backpointer**** bp){
 	RuleVector rulesList;
 	set <string, int > :: iterator itr;
 
@@ -98,7 +106,7 @@ void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules
 				
 		}
 
-		unaryRelax(scores, i, i+1, rules,symbols);
+		unaryRelax(scores, i, i+1, rules,symbols, bp);
 		
 	}
 }
@@ -117,6 +125,10 @@ void printMatrix(int *** scores, int x, int y, int z){
 	}
 }
 
+void printBPTree(backpointer**** bp, int n){
+
+
+}
 
 void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexicons, SymbolsSet& symbols){
 	//size should be words.length, words.length, total non-terminals 
@@ -125,16 +137,23 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 	cout<<" Size of symbols "<<symbols.size()+1<<endl;
 
 	int *** scores  = new int**[words.size()+1];
+	backpointer**** bp = new backpointer***[words.size()+1];
+
 	for (int i = 0; i < words.size()+1; ++i)
 	{
 		scores[i] = new int*[words.size()+1];
+		bp[i] = new backpointer**[words.size()+1];
+
 		for (int j = 0; j < words.size()+1; ++j)
 		{
 			scores[i][j] = new int[symbols.size()];
+			bp[i][j] = new backpointer*[symbols.size()];
+
 
 			for (int k = 0; k < symbols.size(); ++k)
 			{
 				scores[i][j][k]=0;
+				bp[i][j][k]= new backpointer("","",-1);
 			}
 		}
 	}
@@ -142,13 +161,15 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 	//[words.size()+1][symbols.size()];
 	int nWords = words.size();
 		
-	lexiconScores(scores,words,rules,lexicons,symbols);
+	lexiconScores(scores,words,rules,lexicons,symbols,bp);
 
 	for(int length =2; length<=nWords; length++){
-		binaryRelax(scores,nWords,length,rules, symbols);
+		binaryRelax(scores,nWords,length,rules, symbols, bp);
 	}
 
+
 	printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
+	printBPTree(bp,words.size()+1);
 	//tree = backtrackBestParseTree(scores);
 	//return tree;
 }

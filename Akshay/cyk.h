@@ -41,6 +41,13 @@
 #include "table.h"
 #endif
 
+#ifndef BP
+#define BP
+
+#include "bp.h"
+
+#endif
+
 #include <iostream>
 #include <string>
 #include <unordered_map>
