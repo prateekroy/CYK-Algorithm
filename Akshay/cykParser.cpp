@@ -13,7 +13,7 @@ SymbolIndices symIndices;
 
 
 void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsSet& symbols){
-	int prob;
+	int prob=0;
 	RuleVector rulesList;
 	set <string, int > :: iterator itr;
 	
@@ -26,7 +26,7 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 			if(rulesList[k]->is_first_order()){
 
 				//The rule is of the form A-> B. get the score of A>B and that symbol B is present at score [begin][end]
-				prob = rulesList[k]->score * scores[begin][end][symIndices[rulesList[k]->right1]];
+				prob = rulesList[k]->score + scores[begin][end][symIndices[rulesList[k]->right1]];
 
 				// if the above score is greater than the score of B, then add A to the location [begin][end]
 		     	if(prob > scores[begin][end][symIndices[rulesList[k]->left]]){
@@ -52,7 +52,7 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 		
 		//for all symbols
 		for (itr = symbols.begin(); itr != symbols.end(); ++itr){
-			max = -1;
+			max = 0;
 			rulesList = rulesMap[*itr];
 			for(int j=0;j<rulesList.size();j++){
 
@@ -61,7 +61,7 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 					for (int split =start+1;split<=end-1;split++){
 						lscore = scores[start][split][symIndices[rulesList[j]->right1]];
 						rscore = scores[split][end][symIndices[rulesList[j]->right2]];
-						score = rulesList[j]->score * lscore * rscore;
+						score = rulesList[j]->score + lscore + rscore;
 
 						if(score > max){
 							max = score;
@@ -81,7 +81,7 @@ void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules
 	RuleVector rulesList;
 	set <string, int > :: iterator itr;
 
-	//
+	//for all words
 	for(int i=0;i<words.size();i++){
 		//for all symbols
 		for (itr = symbols.begin(); itr != symbols.end(); ++itr){
@@ -90,7 +90,7 @@ void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules
 			for(int k=0;k<rulesList.size();k++){
 				//if the rule produces that symbol on the RHS
 				if(rulesList[k]->right1 == words[i]){
-					//TODO we need to give number to each symbol
+					
 					//add score of that rule in the location
 					scores[i][i+1][symIndices[*itr]] = rulesList[k]->score; 
 				}
@@ -120,6 +120,10 @@ void printMatrix(int *** scores, int x, int y, int z){
 
 void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexicons, SymbolsSet& symbols){
 	//size should be words.length, words.length, total non-terminals 
+
+	cout<<" Size of words "<<words.size()+1<<endl;
+	cout<<" Size of symbols "<<symbols.size()+1<<endl;
+
 	int *** scores  = new int**[words.size()+1];
 	for (int i = 0; i < words.size()+1; ++i)
 	{
@@ -127,6 +131,11 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 		for (int j = 0; j < words.size()+1; ++j)
 		{
 			scores[i][j] = new int[symbols.size()];
+
+			for (int k = 0; k < symbols.size(); ++k)
+			{
+				scores[i][j][k]=0;
+			}
 		}
 	}
 
@@ -137,7 +146,6 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 
 	for(int length =2; length<=nWords; length++){
 		binaryRelax(scores,nWords,length,rules, symbols);
-		
 	}
 
 	printMatrix(scores, words.size()+1,words.size()+1,symbols.size());

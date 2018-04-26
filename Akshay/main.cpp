@@ -1,6 +1,6 @@
 #include "cyk.h"
 #include <iostream>
-
+using namespace std;
 int main(){
         RuleVector rules  {new Rule("S", "NP", "VP", 1), // **QUESTION**: how to make it on the stack?
                         new Rule("S", "X1", "VP", 1),
@@ -45,8 +45,8 @@ int main(){
                         new Rule("NOUN", "flight", 1),
                         new Rule("NOUN", "meal", 1),
                         new Rule("NOUN", "money", 1),
-                        new Rule("VERB", "book", 1),
-                        new Rule("VERB", "include", 1),
+                        new Rule("VERB", "book", 1)
+                        ,new Rule("VERB", "include", 1),
                         new Rule("VERB", "prefer", 1),
                         new Rule("PRONOUN", "I", 1),
                         new Rule("PRONOUN", "she", 1),
@@ -63,8 +63,8 @@ int main(){
 
         };
 
-        // StringVector sents {"does", "the", "flight", "include", "a", "meal"};
-        StringVector sents {"book", "the", "flight", "through", "Houston"};
+        StringVector sents {"does", "the", "flight", "include", "a", "meal"};
+        //StringVector sents {"book", "the", "flight"};
 
         /*std::vector<BTreeNode*> parses = cyk(sents, rules);
 
@@ -73,6 +73,7 @@ int main(){
         }*/
 
         cykParserUtil(sents,rules,lexicons);
+        cout<<"Done";
         //cykParser(sents,rules,lexicons);
 
         //remember to destroy the rules
