@@ -1,9 +1,10 @@
 #include "cyk.h"
 #include <map>
 #include <set>
+#include <cilk/cilk.h>
 using namespace std;
 
-typedef std::set<string> SymbolsSet;
+typedef std::vector<string> SymbolsSet;
 typedef std::map<string, RuleVector> RulesMap;
 typedef std::map<string, int> SymbolIndices;
 typedef std::map<string, RuleVector> LexiconsMap;
@@ -18,7 +19,7 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 	cout<<endl<<endl<<endl<<"In Unary Relax"<<endl;
 	int prob=0;
 	RuleVector rulesList;
-	set <string, int > :: iterator itr;
+	std::vector<string>::iterator itr;
 	
 	//for all symbols
 	for (itr = symbols.begin(); itr != symbols.end(); ++itr){
@@ -43,13 +44,13 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 }
 
 
-void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
+void binaryRelaxSer(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
 	cout<<endl<<endl<<endl<<"In Binary Relax"<<endl;
 	int end=0;
 	int max = -1;
 	RuleVector rulesList;
 	int lscore=0, rscore =0,score=0;
-	set <string, int > :: iterator itr;
+	std::vector<string> :: iterator itr;
 	string right1="", right2="";
 	int bpSplit=-1;
 
@@ -92,20 +93,26 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 }
 
 
-
+#include <mutex>
+std::mutex guard;
 //Parallel Binary Relax
-void binaryRelaxPar(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
+void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
 
 
 	for(int start =0; start <=nWords-length; start++){
 		
 		int end = start + length;
 		int* shared_max = new int[symbols.size()];
+		for (int i = 0; i < symbols.size(); ++i)
+		{
+			shared_max[i] = 0;
+		}
 
-
+	
+		#pragma cilk grainsize = 1
 		//for all symbols
 		//make the for parallel
-		for (set<string,int>::iterator itr = symbols.begin(); itr != symbols.end(); ++itr){
+		cilk_for (std::vector<string>::iterator itr = symbols.begin(); itr != symbols.end(); ++itr){
 			int local_max = 0;
 			RuleVector rulesList = rulesMap[*itr];
 			string right1="", right2="";
@@ -135,12 +142,14 @@ void binaryRelaxPar(int *** scores, int nWords, int length, RuleVector& rules, S
 			}
 
 			//atomic max // for now use lock
+			guard.lock();
 			shared_max[symIndices[*itr]] = max(shared_max[symIndices[*itr]], local_max);
 			bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
+			guard.unlock();
 		}
 
 		//make this parallel for
-		for (set<string,int>::iterator itr = symbols.begin(); itr != symbols.end(); ++itr){
+		cilk_for (std::vector<string>::iterator itr = symbols.begin(); itr != symbols.end(); ++itr){
 			scores[start][end][symIndices[*itr]] = max(scores[start][end][symIndices[*itr]], shared_max[symIndices[*itr]]);			
 		}
 
@@ -156,7 +165,7 @@ void binaryRelaxPar(int *** scores, int nWords, int length, RuleVector& rules, S
 void lexiconScores(int*** scores, const StringVector & words, RuleVector & rules, RuleVector & lexicons, SymbolsSet& symbols, backpointer**** bp){
 	cout<<endl<<endl<<endl<<"In Lexicon Scores"<<endl;
 	RuleVector rulesList;
-	set <string, int > :: iterator itr;
+	std::vector<string> :: iterator itr;
 
 	//for all words
 	for(int i=0;i<words.size();i++){
@@ -283,12 +292,14 @@ void fillMap(RulesMap& map, RuleVector& rules){
         }
 }	
 
+#include <algorithm>
 void fillSet(SymbolsSet& sym, RuleVector& rules){
 	string key;
 	for(auto i = 0; i < rules.size(); ++i){
             key = rules[i]->left;
-            if(sym.find(key)  == sym.end()){ // key not exist
-                    sym.insert(key);
+            if (std::find(sym.begin(), sym.end(), key) == sym.end() )
+            {
+            	sym.push_back(key);
             }
     }
 }	
@@ -311,7 +322,7 @@ void initializeSymbols(SymbolsSet& sym,RuleVector & rules, RuleVector & lexicons
 void initializeSymbolIndices(SymbolsSet& symbols, SymbolIndices& symIndices){
 
 	int count =0;
-	set <string, int > :: iterator itr;
+	vector<string> :: iterator itr;
 	for (itr = symbols.begin(); itr != symbols.end(); ++itr)
     {
     	symIndices[*itr] = count;
