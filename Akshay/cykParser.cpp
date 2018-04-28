@@ -44,7 +44,7 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 }
 
 
-void binaryRelaxSer(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
+void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
 	cout<<endl<<endl<<endl<<"In Binary Relax"<<endl;
 	int end=0;
 	int max = -1;
@@ -96,14 +96,14 @@ void binaryRelaxSer(int *** scores, int nWords, int length, RuleVector& rules, S
 #include <mutex>
 std::mutex guard;
 //Parallel Binary Relax
-void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
+void threadBasedRuleBR(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
 
 
 	for(int start =0; start <=nWords-length; start++){
 		
 		int end = start + length;
 		int* shared_max = new int[symbols.size()];
-		for (int i = 0; i < symbols.size(); ++i)
+		cilk_for (int i = 0; i < symbols.size(); ++i)
 		{
 			shared_max[i] = 0;
 		}
