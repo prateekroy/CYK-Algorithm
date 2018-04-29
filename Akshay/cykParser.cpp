@@ -96,10 +96,10 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 #include <mutex>
 std::mutex guard;
 //Parallel Binary Relax
-void threadBasedRuleBR(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
+void blockBasedRuleBR(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
 
 
-	for(int start =0; start <=nWords-length; start++){
+	cilk_for(int start =0; start <=nWords-length; start++){
 		
 		int end = start + length;
 		int* shared_max = new int[symbols.size()];
@@ -119,7 +119,7 @@ void threadBasedRuleBR(int *** scores, int nWords, int length, RuleVector& rules
 			int bpSplit=-1;
 
 			//For each binary rule in the grammar
-			for(int j=0;j<rulesList.size();j++){
+			cilk_for(int j=0;j<rulesList.size();j++){
 
 				//TODO check if for unary rules, the right child is in right1
 				if(rulesList[j]->is_second_order()){
@@ -159,6 +159,70 @@ void threadBasedRuleBR(int *** scores, int nWords, int length, RuleVector& rules
 
 		unaryRelax(scores, start, end, rules,symbols, bp);
 	}
+}
+
+void threadBasedRuleBR(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp){
+
+
+
+	#pragma cilk grainsize = 1
+
+	cilk_for(int start =0; start <=nWords-length; start++){
+		
+		int end = start + length;
+		int* shared_max = new int[symbols.size()];
+		cilk_for (int i = 0; i < symbols.size(); ++i)
+		{
+			shared_max[i] = 0;
+		}
+
+		cilk_for (int i = 0; i < rules.size(); ++i)
+		{
+			string l_sym = rules[i]->right1;
+			string r_sym = rules[i]->right2;
+			string symbol = rules[i]->left;
+
+			int local_max = 0;
+			int bpSplit=-1;
+			string right1 = "";
+			string right2 = "";
+
+			for (int split =start+1;split<=end-1;split++){
+				int lscore = scores[start][split][symIndices[l_sym]];
+				int rscore = scores[split][end][symIndices[r_sym]];
+				int score = rules[i]->score + lscore + rscore;
+
+				if(score > local_max){
+					local_max = score;
+
+					//needed for backpointer
+					bpSplit = split;
+					right1 = l_sym;
+					right2 = r_sym;
+
+				}
+			}	
+
+			//atomic max // for now use lock
+			guard.lock();
+			shared_max[symIndices[symbol]] = max(shared_max[symIndices[symbol]], local_max);
+			bp[start][end][symIndices[symbol]]->setBP(right1,right2,bpSplit);
+			guard.unlock();								
+		}
+
+
+
+		//make this parallel for
+		cilk_for (std::vector<string>::iterator itr = symbols.begin(); itr != symbols.end(); ++itr){
+			scores[start][end][symIndices[*itr]] = max(scores[start][end][symIndices[*itr]], shared_max[symIndices[*itr]]);			
+		}
+
+			// scores[start][end][symIndices[*itr]]=local_max;
+			// // cout << right1 << " " << right2 << endl;
+			// bp[start][end][symIndices[*itr]]->setBP(right1,right2,bpSplit);
+
+		unaryRelax(scores, start, end, rules,symbols, bp);
+	}	
 }
 
 
@@ -274,6 +338,8 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 
 	for(int length =2; length<=nWords; length++){
 		binaryRelax(scores,nWords,length,rules, symbols, bp);
+		// blockBasedRuleBR(scores,nWords,length,rules, symbols, bp);
+		// threadBasedRuleBR(scores,nWords,length,rules, symbols, bp);
 	}
 
 
