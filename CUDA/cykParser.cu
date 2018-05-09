@@ -35,7 +35,7 @@ void unaryRelax (int *** scores, int begin, int end, RuleVector& rules, SymbolsS
 				// if the above score is greater than the score of B, then add A to the location [begin][end]
 		     	if(prob > scores[begin][end][symIndices[rulesList[k]->left]]){
 		     		scores[begin][end][symIndices[rulesList[k]->left]] = prob;
-		     		cout << rulesList[k]->left << " ----> "<<rulesList[k]->right1 << endl;
+		     		// cout << rulesList[k]->left << " ----> "<<rulesList[k]->right1 << endl;
 		     		bp[begin][end][symIndices[rulesList[k]->left]]->setBP(rulesList[k]->right1,"",0);
 		     	}
          	}
@@ -76,7 +76,7 @@ void binaryRelax(int *** scores, int nWords, int length, RuleVector& rules, Symb
 							bpSplit = split;
 							right1 = rulesList[j]->right1;
 							right2 = rulesList[j]->right2;
-							cout<<rulesList[j]->left<<" ------> "<<rulesList[j]->right1<<" "<<rulesList[j]->right2;
+							// cout<<rulesList[j]->left<<" ------> "<<rulesList[j]->right1<<" "<<rulesList[j]->right2;
 						}
 					}
 				}
@@ -142,8 +142,18 @@ static void MyFunc2D(IntRule* drules, int r, int* dscores, int A, int B, int C, 
 			// string right2 = "";
 
 			for (int split =start+1;split<=end-1;split++){
-				int lscore = dscores[start + B * (split + C * l_sym)];
-				int rscore = dscores[split + B * (end + C * r_sym)];
+				int lscore = 0;
+				int rscore = 0;
+
+				// start + B * (split + C * l_sym)
+				// https://stackoverflow.com/questions/7367770/how-to-flatten-or-index-3d-array-in-1d-array
+				// (z * xMax * yMax) + (y * xMax) + x;
+				int one = (l_sym*A*B) + (split*A) + start;	
+				lscore = dscores[one];
+	
+				int two = (r_sym*A*B) + (end*A) + split;
+				rscore = dscores[two];
+
 				int score = drules[i].score + lscore + rscore;
 
 				if(score > local_max){
@@ -182,17 +192,24 @@ IntRule* ConvertRule(RuleVector& rules)
 	return ruleArr;
 }
 
+int to1D( int x, int y, int z , int xMax, int yMax, int zMax) {
+    return (z * xMax * yMax) + (y * xMax) + x;
+}
+
 int* ConvertScore(int*** score, int A, int B, int C)
 {
   int* hscore;// = new int[A*B*C*10];
   cudaMallocHost((void**)&hscore, A*B*C*sizeof(int));
+
+
   for (int i = 0; i < A; ++i)
   {
     for (int j = 0; j < B; ++j)
     {
       for (int k = 0; k < C; ++k)
       {
-        hscore[i + B * (j + C * k)] = score[i][j][k];
+        // hscore[i + B * (j + C * k)] = score[i][j][k];
+      	hscore[to1D(i, j, k, A, B, C)] = score[i][j][k];
       }
     }
   }
@@ -218,10 +235,9 @@ IntRule* ConvertRuleTOCudaDevice(IntRule* rules, int N){
   return drules;
 }
 
-
 void threadBasedRuleBR(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp, int A, int B, int C){
 
-
+	cout << "Baby i am here " <<  A << " " << B << " " << C << " " << symbols.size() << " " << nWords << endl; 
 
 	IntRule* hrules = ConvertRule(rules);
 	IntRule* drules = ConvertRuleTOCudaDevice(hrules, rules.size());
@@ -260,6 +276,7 @@ void threadBasedRuleBR(int *** scores, int nWords, int length, RuleVector& rules
 
 		int* sh_max = ConvertToCudaDevice(shared_max, symbols.size());
 
+		// int** testy = alloc2d();
 	  	MyFunc2D<<<1, rules.size()*2>>>(drules, rules.size(), dscores, A, B, C, start, end, sh_max);
 
 
@@ -562,7 +579,7 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 		// blockBasedRuleBR(scores,nWords,length,rules, symbols, bp);
 		// threadBasedRuleBRcpu(scores,nWords,length,rules, symbols, bp);
 
-		threadBasedRuleBR(scores,nWords,length,rules, symbols, bp, words.size(), words.size(), symbols.size());
+		threadBasedRuleBR(scores,nWords,length,rules, symbols, bp, words.size()+1, words.size()+1, symbols.size());
 	}
 
 	printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
