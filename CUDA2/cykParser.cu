@@ -655,11 +655,11 @@ static void blockBasedBR(SymbolMap* dsm, int numSymbols, IntRule* drules, int nu
 			int r_sym = rulesList[j].right2symIndex;
 			int symbol = rulesList[j].leftsymIndex;
 
-				int one = (l_sym*A*B) + (split*A) + start;	
-				lscore = dscores[one];
+			int one = (l_sym*A*B) + (split*A) + start;	
+			lscore = dscores[one];
 	
-				int two = (r_sym*A*B) + (end*A) + split;
-				rscore = dscores[two];
+			int two = (r_sym*A*B) + (end*A) + split;
+			rscore = dscores[two];
 			
 			score = rulesList[j].score + lscore + rscore;
 
@@ -667,7 +667,7 @@ static void blockBasedBR(SymbolMap* dsm, int numSymbols, IntRule* drules, int nu
 				max = score;
 				bpSplit = split;
 				}
-			}
+		}
 		// }
 		atomicMax(&sh_max[sm.symNum], score);
 	}	
