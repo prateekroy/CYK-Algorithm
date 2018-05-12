@@ -102,8 +102,8 @@ int main(){
         // StringVector sents {"does", "the", "flight", "include", "a", "meal"};
         StringVector sents {"book", "the", "flight", "through", "Houston"};
 
-        ReadFromFileAndFillBinaryRules(rules, "preProcessedGrammar.txt");
-        ReadFromFileAndFillUnaryRules(lexicons, "preProcessedLexicons.txt");
+        // ReadFromFileAndFillBinaryRules(rules, "preProcessedGrammar.txt");
+        // ReadFromFileAndFillUnaryRules(lexicons, "preProcessedLexicons.txt");
         /*std::vector<BTreeNode*> parses = cyk(sents, rules);
 
         for(auto tree : parses){
