@@ -1,6 +1,43 @@
 #include "cyk.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
 using namespace std;
+
+
+void ReadFromFileAndFillBinaryRules(RuleVector& rules, string file_name){
+        std::ifstream infile(file_name);
+
+        std::string line;
+        while (std::getline(infile, line))
+        {
+            std::istringstream iss(line);
+            string a, arrow, c, d;
+            //TODO : Change this to double
+            int e;
+            if (!(iss >> a >> arrow >> c >> d >> e)) { break; } // error
+            // cout << a << arrow << c << d << e << endl;
+            rules.push_back(new Rule(a, c, d, e));
+        }        
+}
+
+
+void ReadFromFileAndFillUnaryRules(RuleVector& lexicons, string file_name){
+        std::ifstream infile(file_name);
+
+        std::string line;
+        while (std::getline(infile, line))
+        {
+            std::istringstream iss(line);
+            string a, b;
+            //TODO : Change this to double
+            int c;
+            if (!(iss >> a >> b >> c)) { break; } // error
+            // cout << a << b << c << endl;
+            lexicons.push_back(new Rule(a, b, c));
+        }        
+}
+
 int main(){
         RuleVector rules  {new Rule("S", "NP", "VP", 1), // **QUESTION**: how to make it on the stack?
                         new Rule("S", "X1", "VP", 1),
@@ -65,6 +102,8 @@ int main(){
         // StringVector sents {"does", "the", "flight", "include", "a", "meal"};
         StringVector sents {"book", "the", "flight", "through", "Houston"};
 
+        ReadFromFileAndFillBinaryRules(rules, "preProcessedGrammar.txt");
+        ReadFromFileAndFillUnaryRules(lexicons, "preProcessedLexicons.txt");
         /*std::vector<BTreeNode*> parses = cyk(sents, rules);
 
         for(auto tree : parses){
