@@ -116,17 +116,24 @@ IntRule* ConvertRule(RuleVector& rules)
 	return ruleArr;
 }
 
+int to1D( int x, int y, int z , int xMax, int yMax, int zMax) {
+    return (z * xMax * yMax) + (y * xMax) + x;
+}
+
 int* ConvertScore(int*** score, int A, int B, int C)
 {
   int* hscore;// = new int[A*B*C*10];
   cudaMallocHost((void**)&hscore, A*B*C*sizeof(int));
+
+
   for (int i = 0; i < A; ++i)
   {
     for (int j = 0; j < B; ++j)
     {
       for (int k = 0; k < C; ++k)
       {
-        hscore[i + B * (j + C * k)] = score[i][j][k];
+        // hscore[i + B * (j + C * k)] = score[i][j][k];
+      	hscore[to1D(i, j, k, A, B, C)] = score[i][j][k];
       }
     }
   }
@@ -606,15 +613,15 @@ SymbolMap* convertSymbolsMap(SymbolsSet& symbols)
 	for (int i = 0; i < symbols.size(); ++i)
 	{
 		symMap[i].symNum = symIndices[symbols[i]];
+
 		RuleVector rules = rulesMap[symbols[i]];
 		for (int j = 0; j < rules.size(); ++j)
 		{
 			symMap[i].i = new IntRule[rules.size()];
-
 			symMap[i].i[j].leftsymIndex = symIndices[rules[j]->left];
 			symMap[i].i[j].right1symIndex = symIndices[rules[j]->right1];
 			symMap[i].i[j].right2symIndex = symIndices[rules[j]->right2];
-			symMap[i].i[j].score = rules[i]->score;
+			symMap[i].i[j].score = rules[j]->score;
 		}
 
 	}
@@ -648,52 +655,60 @@ static void blockBasedBR(SymbolMap* dsm, int numSymbols, IntRule* drules, int nu
 			int r_sym = rulesList[j].right2symIndex;
 			int symbol = rulesList[j].leftsymIndex;
 
-			lscore = dscores[start + B * (split + C * l_sym)];
-			rscore = dscores[split + B * (end + C * r_sym)];
+			int one = (l_sym*A*B) + (split*A) + start;	
+			lscore = dscores[one];
+	
+			int two = (r_sym*A*B) + (end*A) + split;
+			rscore = dscores[two];
+			
 			score = rulesList[j].score + lscore + rscore;
 
 			if(score > max){
 				max = score;
 				bpSplit = split;
 				}
-			}
+		}
 		// }
 		atomicMax(&sh_max[sm.symNum], score);
 	}	
 }
 
-void blockBasedBRUtil(int *** scores, int nWords, int length, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp, int A, int B, int C){
+void blockBasedBRUtil(int *** scores, int nWords, RuleVector& rules, SymbolsSet& symbols, backpointer**** bp, int A, int B, int C){
 
-	cout<<"In block based BR";
+	cout<<"In block based BR"<<endl;
+
 	IntRule* hrules = ConvertRule(rules);
 	IntRule* drules = ConvertRuleTOCudaDevice(hrules, rules.size());
+	
 	int* newScores;
 	int end;
 
 	int* shared_max = new int[symbols.size()];
-		for (int i = 0; i < symbols.size(); ++i)
-		{
-			shared_max[i] = 0;
-		}
-	
-	for(int start =0; start <=nWords-length; start++){
-		
-		end = start + length;
-		//convert3DArrayToCudaDevice((int*)&scores, newScores,A,B,C);
-
-		int* arr = ConvertScore(scores, A, B, C);
-		int* dscores = ConvertToCudaDevice(arr, A*B*C);
-
-		int* sh_max = ConvertToCudaDevice(shared_max, symbols.size());
-		
-		SymbolMap* sm = convertSymbolsMap(symbols);
-		SymbolMap* dsm = convertSymbolsMapToCudaDevice(sm,symbols.size());
-		cout<<"Entering Kernel"<<endl;
-		blockBasedBR<<<symbols.size(), rules.size()*2>>>(dsm, symbols.size(), drules, rules.size(), dscores, A, B, C, start, end, sh_max);
-		cout<<"Exiting Kernel"<<endl;
-		cudaMemcpy(shared_max, sh_max, symbols.size()*sizeof(int), cudaMemcpyDeviceToHost);
+	for (int i = 0; i < symbols.size(); ++i)
+	{
+		shared_max[i] = 0;
 	}
 
+	int* arr = ConvertScore(scores, A, B, C);
+	int* dscores = ConvertToCudaDevice(arr, A*B*C);
+
+	SymbolMap* sm = convertSymbolsMap(symbols);
+	SymbolMap* dsm = convertSymbolsMapToCudaDevice(sm,symbols.size());
+
+	for(int length =2; length<=nWords; length++){
+		for(int start =0; start <=nWords-length; start++){		
+			end = start + length;
+			//convert3DArrayToCudaDevice((int*)&scores, newScores,A,B,C);
+			int* sh_max = ConvertToCudaDevice(shared_max, symbols.size());		
+			cout<<"Entering Kernel"<<endl;
+			blockBasedBR<<<symbols.size(), rules.size()*2>>>(dsm, symbols.size(), drules, rules.size(), dscores, A, B, C, start, end, sh_max);
+			cout<<"Exiting Kernel"<<endl;
+			cudaMemcpy(shared_max, sh_max, symbols.size()*sizeof(int), cudaMemcpyDeviceToHost);
+			cout<<"Done with GPU logic"<<endl;
+			unaryRelax(scores, start, end, rules,symbols, bp);
+			cout<<"loop end"<<endl;
+		}
+	}
 }
 
 #include <unistd.h>
@@ -730,18 +745,16 @@ void cykParser(const StringVector & words, RuleVector & rules, RuleVector & lexi
 		
 	lexiconScores(scores,words,rules,lexicons,symbols,bp);
 
-	cout<<"Out of LExicon Scores"<<endl;
-	for(int length =2; length<=nWords; length++){
+	//for(int length =2; length<=nWords; length++){
 		// binaryRelax(scores,nWords,length,rules, symbols, bp);
 		//blockBasedRuleBR(scores,nWords,length,rules, symbols, bp);
 		// threadBasedRuleBRcpu(scores,nWords,length,rules, symbols, bp);
-		cout<<"Word size"<<words.size()<< endl;
-		cout<<"Symbols size"<<symbols.size()<< endl;
-		cout<<"Calling Block BR "<<endl;
-		blockBasedBRUtil(scores,nWords,length,rules, symbols, bp, words.size(), words.size(), symbols.size());
+		cout<<"<----------";
+		blockBasedBRUtil(scores,nWords,rules, symbols, bp, words.size()+1, words.size()+1, symbols.size());
+		cout<<"---------->";
 		//threadBasedRuleBR(scores,nWords,length,rules, symbols, bp, words.size(), words.size(), symbols.size());
-	}
-
+	// }
+	cout<<"the end"<<endl;
 	printMatrix(scores, words.size()+1,words.size()+1,symbols.size());
 	// printBPTree(bp, 0, words.size(), "S",words);
 }
