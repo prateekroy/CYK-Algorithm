@@ -4,6 +4,7 @@
 class Rule{ // 2st order production rule
 
 public:
+        Rule(){};
 
         Rule(std::string _l, std::string _r1, std::string _r2, int _score);
 

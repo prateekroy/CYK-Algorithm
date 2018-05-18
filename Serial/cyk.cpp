@@ -35,7 +35,7 @@ int findScoreForRule(std::string left, std::string right1, std::string right2, R
     for (int i = 0; i < rules.size(); ++i)
     {
         Rule* rule = rules[i];
-        if (rule->left == left && (rule->right1 == right1 && rule->right2 == right2 || rule->right1 == right2 && rule->right2 == right1))
+        if (rule->left == left && ( (rule->right1 == right1 && rule->right2 == right2 )|| (rule->right1 == right2 && rule->right2 == right1)))
         {
             return rule->score;
         }

@@ -1,21 +1,34 @@
-all: btree types.h rule table cyk main
-	g++-4.7 -std=c++11 *.o -o main
+# Build tools
+TARGET ?= run
+NVCC = nvcc
+CXX = g++
+GPUOBJS = cyk.o btree.o rule.o cykParser.o table.o bp.o main.o
 
-main: main.cpp
-	g++-4.7 -c -std=c++11 main.cpp
+# make and compile
+$(TARGET):$(GPUOBJS)
+	$(NVCC) -o $(TARGET) $(GPUOBJS) 
 
-cyk: cyk.cpp
-	g++-4.7 -c -std=c++11 cyk.cpp
+cykParser.o: cykParser.cu
+	$(NVCC) --std=c++11 -c cykParser.cu
 
-btree: btree.cpp
-	g++-4.7 -c -std=c++11 btree.cpp
+cyk.o: cyk.cpp
+	$(CXX) --std=c++11 -c cyk.cpp
 
-rule: rule.cpp
-	g++-4.7 -c -std=c++11 rule.cpp
+btree.o: btree.cpp
+	$(CXX) --std=c++11 -c btree.cpp
 
-table: table.cpp
-	g++-4.7 -c -std=c++11 table.cpp
+rule.o: rule.cpp
+	$(CXX) --std=c++11 -c rule.cpp
 
+table.o: table.cpp
+	$(CXX) --std=c++11 -c table.cpp
+
+bp.o: bp.cpp
+	$(CXX) --std=c++11 -c bp.cpp
+
+main.o: main.cpp
+	$(CXX) --std=c++11 -c main.cpp
+
+.PHONY: clean
 clean:
-	rm *.o
-	rm main
+	$(RM) $(TARGET) $(GPUOBJS)

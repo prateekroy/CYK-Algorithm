@@ -41,13 +41,12 @@
 #include "table.h"
 #endif
 
+#ifndef BP
+#define BP
 
-#ifndef CYKPARSER
-#define CYKPARSER
+#include "bp.h"
 
-#include "cykparser.h"
 #endif
-
 
 #include <iostream>
 #include <string>
@@ -56,4 +55,5 @@
 
 std::vector<BTreeNode*> cyk(const StringVector &  words, RuleVector & rules);
 
-void cykParser(const StringVector & words, RuleVector & rules);
+void cykParser(const StringVector & words, RuleVector & rules,RuleVector & lexicons);
+void cykParserUtil(const StringVector & words, RuleVector & rules,RuleVector & lexicons);
